@@ -154,3 +154,4 @@ $MarkerEnd
 }
 
 Write-Host "==> Oh My Posh component installed."
+Write-Host "    restart PowerShell or run: . `$PROFILE"

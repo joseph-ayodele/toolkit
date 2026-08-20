@@ -55,4 +55,4 @@ run_component() {
 run_component "oh-my-posh"
 run_component "zsh"
 
-echo "==> Terminal environment installed. Restart your shell or run: exec zsh"
+echo "==> Terminal environment installed. Restart your shell or run: source ~/.zshrc (or: exec zsh)"

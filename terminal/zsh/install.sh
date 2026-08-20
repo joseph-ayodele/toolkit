@@ -198,4 +198,4 @@ STRIPPED="$(awk -v t_start="$MARKER_START" -v t_end="$MARKER_END" \
 mv "$ZSHRC.tmp" "$ZSHRC"
 
 echo "==> zsh component installed."
-echo "    restart your shell or run: exec zsh"
+echo "    restart your shell or run: source ~/.zshrc (or: exec zsh)"

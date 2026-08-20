@@ -35,4 +35,4 @@ function Invoke-ToolkitComponent {
 Invoke-ToolkitComponent "oh-my-posh"
 Invoke-ToolkitComponent "powershell"
 
-Write-Host "==> Terminal environment installed. Restart PowerShell to see changes."
+Write-Host "==> Terminal environment installed. Restart PowerShell or run: . `$PROFILE"

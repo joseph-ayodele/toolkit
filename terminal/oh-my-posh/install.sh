@@ -231,3 +231,4 @@ else
 fi
 
 echo "==> Oh My Posh component installed."
+echo "    restart your shell or run: source ~/.zshrc (or: exec zsh)"
