@@ -107,6 +107,46 @@ install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosugge
 install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting"
 install_plugin "zsh-completions" "https://github.com/zsh-users/zsh-completions"
 
+OMP_MARKER_START="# >>> toolkit:oh-my-posh >>>"
+OMP_MARKER_END="# <<< toolkit:oh-my-posh <<<"
+
+# Clean up standalone toolkit:oh-my-posh blocks from other startup files
+OTHER_STARTUP_FILES=(
+  "${ZDOTDIR:-$HOME}/.zprofile"
+  "${ZDOTDIR:-$HOME}/.zshenv"
+  "${ZDOTDIR:-$HOME}/.zlogin"
+  "$HOME/.bashrc"
+  "$HOME/.bash_profile"
+  "$HOME/.bash_login"
+  "$HOME/.profile"
+)
+
+for file in "${OTHER_STARTUP_FILES[@]}"; do
+  [[ ! -f "$file" ]] && continue
+  real_file="$file"
+  if [[ -L "$real_file" ]]; then
+    link="$(readlink "$real_file")"
+    [[ "$link" != /* ]] && link="$(cd "$(dirname "$real_file")" && pwd)/$link"
+    real_file="$link"
+  fi
+  [[ "$real_file" == "$ZSHRC" ]] && continue
+
+  if grep -Fq "$OMP_MARKER_START" "$real_file" 2>/dev/null; then
+    cleaned="$(awk -v start="$OMP_MARKER_START" -v end="$OMP_MARKER_END" '
+      $0 == start { skip = 1; next }
+      $0 == end   { skip = 0; next }
+      !skip { print }
+    ' "$real_file")"
+    if [[ -n "$cleaned" ]]; then
+      printf '%s\n' "$cleaned" > "$real_file.tmp"
+    else
+      : > "$real_file.tmp"
+    fi
+    mv "$real_file.tmp" "$real_file"
+    echo "    removed standalone oh-my-posh block from $file (now managed via toolkit:terminal)"
+  fi
+done
+
 echo "==> Wiring ~/.zshrc"
 
 touch "$ZSHRC"
@@ -124,16 +164,27 @@ if [[ "$START_COUNT" -ne "$END_COUNT" || "$START_COUNT" -gt 1 ]]; then
   exit 1
 fi
 
-if [[ "$START_COUNT" -eq 0 ]]; then
+OMP_START_COUNT="$(grep -cF "$OMP_MARKER_START" "$ZSHRC" || true)"
+OMP_END_COUNT="$(grep -cF "$OMP_MARKER_END" "$ZSHRC" || true)"
+
+if [[ "$OMP_START_COUNT" -ne "$OMP_END_COUNT" || "$OMP_START_COUNT" -gt 1 ]]; then
+  echo "error: $ZSHRC has a malformed oh-my-posh toolkit marker block (found $OMP_START_COUNT start / $OMP_END_COUNT end markers)." >&2
+  echo "       refusing to modify it automatically to avoid losing content. Remove the" >&2
+  echo "       partial '# >>> toolkit:oh-my-posh >>>' / '# <<< toolkit:oh-my-posh <<<' block by hand and re-run." >&2
+  exit 1
+fi
+
+if [[ ! -f "$ZSHRC.toolkit-backup" && -s "$ZSHRC" ]]; then
   cp "$ZSHRC" "$ZSHRC.toolkit-backup"
   echo "    backed up existing ~/.zshrc to ~/.zshrc.toolkit-backup"
 fi
 
 # Command substitution strips trailing newlines, so any blank line(s)
 # left behind by a removed block don't accumulate on repeated reruns.
-STRIPPED="$(awk -v start="$MARKER_START" -v end="$MARKER_END" '
-  $0 == start { skip = 1; next }
-  $0 == end { skip = 0; next }
+STRIPPED="$(awk -v t_start="$MARKER_START" -v t_end="$MARKER_END" \
+                -v o_start="$OMP_MARKER_START" -v o_end="$OMP_MARKER_END" '
+  $0 == t_start || $0 == o_start { skip = 1; next }
+  $0 == t_end || $0 == o_end     { skip = 0; next }
   !skip { print }
 ' "$ZSHRC")"
 

@@ -46,27 +46,67 @@ Get-ToolkitFile -Relative "toolkit.ps1"   -Dest (Join-Path $InstallDir "toolkit.
 Get-ToolkitFile -Relative "aliases.ps1"   -Dest (Join-Path $InstallDir "aliases.ps1")
 Get-ToolkitFile -Relative "functions.ps1" -Dest (Join-Path $InstallDir "functions.ps1")
 
+$MarkerStart = "# >>> toolkit:terminal >>>"
+$MarkerEnd   = "# <<< toolkit:terminal <<<"
+$OmpMarkerStart = "# >>> toolkit:oh-my-posh >>>"
+$OmpMarkerEnd   = "# <<< toolkit:oh-my-posh <<<"
+$ompPattern     = "(?s)" + [regex]::Escape($OmpMarkerStart) + ".*?" + [regex]::Escape($OmpMarkerEnd) + "\r?\n?"
+
+$ProfilePath = if ($PROFILE -and $PROFILE.CurrentUserAllHosts) {
+    $PROFILE.CurrentUserAllHosts
+} elseif ($PROFILE) {
+    $PROFILE.ToString()
+} else {
+    Join-Path $HOME "Documents\PowerShell\profile.ps1"
+}
+
+# Clean up standalone toolkit:oh-my-posh blocks from other profile files
+$candidateProfiles = @()
+if ($PROFILE) {
+    if ($PROFILE.CurrentUserAllHosts)     { $candidateProfiles += $PROFILE.CurrentUserAllHosts }
+    if ($PROFILE.CurrentUserCurrentHost) { $candidateProfiles += $PROFILE.CurrentUserCurrentHost }
+    if ($PROFILE.AllUsersAllHosts)        { $candidateProfiles += $PROFILE.AllUsersAllHosts }
+    if ($PROFILE.AllUsersCurrentHost)    { $candidateProfiles += $PROFILE.AllUsersCurrentHost }
+}
+$candidateProfiles += (Join-Path $HOME "Documents\PowerShell\profile.ps1")
+$candidateProfiles += (Join-Path $HOME "Documents\PowerShell\Microsoft.PowerShell_profile.ps1")
+$candidateProfiles += (Join-Path $HOME "Documents\WindowsPowerShell\profile.ps1")
+$candidateProfiles += (Join-Path $HOME "Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1")
+$candidateProfiles += (Join-Path $HOME ".config/powershell/profile.ps1")
+$candidateProfiles += (Join-Path $HOME ".config/powershell/Microsoft.PowerShell_profile.ps1")
+
+$candidateProfiles = $candidateProfiles | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
+
+foreach ($prof in $candidateProfiles) {
+    if ($prof -ne $ProfilePath) {
+        $otherContent = Get-Content -Path $prof -Raw -ErrorAction SilentlyContinue
+        if ($otherContent -and $otherContent -match [regex]::Escape($OmpMarkerStart)) {
+            $cleaned = [regex]::Replace($otherContent, $ompPattern, "")
+            Set-Content -Path $prof -Value $cleaned.TrimEnd() -NoNewline
+            Write-Host "    removed standalone oh-my-posh block from $prof (now managed via toolkit:terminal)"
+        }
+    }
+}
+
 Write-Host "==> Wiring `$PROFILE"
 
-$ProfilePath = $PROFILE.CurrentUserAllHosts
 $ProfileDir = Split-Path $ProfilePath
 New-Item -ItemType Directory -Force -Path $ProfileDir | Out-Null
 if (-not (Test-Path $ProfilePath)) {
     New-Item -ItemType File -Force -Path $ProfilePath | Out-Null
 }
 
-$MarkerStart = "# >>> toolkit:terminal >>>"
-$MarkerEnd   = "# <<< toolkit:terminal <<<"
 $content = Get-Content -Path $ProfilePath -Raw -ErrorAction SilentlyContinue
 if ($null -eq $content) { $content = "" }
 
-if ($content -notmatch [regex]::Escape($MarkerStart)) {
+if (-not (Test-Path "$ProfilePath.toolkit-backup") -and (Test-Path $ProfilePath) -and ((Get-Item $ProfilePath).Length -gt 0)) {
     Copy-Item $ProfilePath "$ProfilePath.toolkit-backup" -Force
     Write-Host "    backed up existing profile to $ProfilePath.toolkit-backup"
 }
 
 $pattern = "(?s)" + [regex]::Escape($MarkerStart) + ".*?" + [regex]::Escape($MarkerEnd) + "\r?\n?"
 $stripped = [regex]::Replace($content, $pattern, "")
+$stripped = [regex]::Replace($stripped, $ompPattern, "")
 
 $block = @"
 $MarkerStart
@@ -74,7 +114,7 @@ if (Test-Path "`$HOME/.config/toolkit/terminal/powershell/toolkit.ps1") { . "`$H
 $MarkerEnd
 "@
 
-$newContent = $stripped.TrimEnd() + "`r`n`r`n" + $block + "`r`n"
+$newContent = if ($stripped.Trim()) { $stripped.TrimEnd() + "`r`n`r`n" + $block + "`r`n" } else { $block + "`r`n" }
 Set-Content -Path $ProfilePath -Value $newContent -NoNewline
 
 Write-Host "==> PowerShell component installed."
