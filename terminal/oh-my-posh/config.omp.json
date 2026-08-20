@@ -4,8 +4,7 @@
   "final_space": true,
   "console_title_template": "{{ .Folder }}",
   "palette": {
-        "os": "#ACB0BE",
-        "closer": "p:os",
+        "closer": "#ACB0BE",
         "pink": "#ea76cb",
         "lavender": "#7287FD",
         "blue":  "#1e66f5"
@@ -14,12 +13,6 @@
     {
       "alignment": "left",
       "segments": [
-        {
-          "foreground": "p:os",
-          "style": "plain",
-          "template": "{{.Icon}} ",
-          "type": "os"
-        },
         {
           "foreground": "p:blue",
           "style": "plain",
