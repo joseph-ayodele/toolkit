@@ -220,9 +220,15 @@ else
   {
     [[ -n "$STRIPPED" ]] && printf '%s\n\n' "$STRIPPED"
     printf '%s\n' "$MARKER_START"
-    printf '%s\n' 'if command -v oh-my-posh >/dev/null 2>&1; then'
-    printf '%s\n' "  eval \"\$(oh-my-posh init $SHELL_FLAVOR --config \"\$HOME/.config/toolkit/terminal/oh-my-posh/config.omp.json\")\""
-    printf '%s\n' 'fi'
+    printf '%s\n' '# Interactive shells only: a prompt engine emits output that corrupts'
+    printf '%s\n' '# scp/rsync and adds latency to every non-interactive shell invocation.'
+    printf '%s\n' 'case $- in'
+    printf '%s\n' '  *i*)'
+    printf '%s\n' '    if command -v oh-my-posh >/dev/null 2>&1; then'
+    printf '%s\n' "      eval \"\$(oh-my-posh init $SHELL_FLAVOR --config \"\$HOME/.config/toolkit/terminal/oh-my-posh/config.omp.json\")\""
+    printf '%s\n' '    fi'
+    printf '%s\n' '    ;;'
+    printf '%s\n' 'esac'
     printf '%s\n' "$MARKER_END"
   } > "$TARGET_REAL.tmp"
 
