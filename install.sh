@@ -2,10 +2,11 @@
 #
 # Toolkit — repository-level installer.
 #
-# Currently orchestrates the terminal component. Other categories
-# (bootstrap, git, editors, dev, cloud, scripts) will be wired in here
-# as they land — this script is not required to install any one
-# component; see terminal/install.sh for the terminal-only entrypoint.
+# Currently orchestrates the terminal and claude categories. Other
+# categories (bootstrap, git, editors, dev, cloud, scripts) will be
+# wired in here as they land — this script is not required to install
+# any one of them; see terminal/install.sh or claude/install.sh for
+# the per-category entrypoints.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/joseph-ayodele/toolkit/main/install.sh | bash
@@ -42,15 +43,22 @@ else
   SCRIPT_DIR=""
 fi
 
+run_category() {
+  local category="$1"
+  echo "==> ${category}"
+  if [[ -n "$SCRIPT_DIR" ]]; then
+    bash "$SCRIPT_DIR/${category}/install.sh"
+  else
+    curl -fsSL "$RAW_BASE/${category}/install.sh" | bash
+  fi
+}
+
 echo "==> Toolkit installer"
 
 case "$(uname -s)" in
   Darwin|Linux)
-    if [[ -n "$SCRIPT_DIR" ]]; then
-      bash "$SCRIPT_DIR/terminal/install.sh"
-    else
-      curl -fsSL "$RAW_BASE/terminal/install.sh" | bash
-    fi
+    run_category "terminal"
+    run_category "claude"
     ;;
   *)
     echo "error: unsupported platform for install.sh; use install.ps1 on Windows." >&2

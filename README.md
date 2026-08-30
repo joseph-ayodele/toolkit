@@ -11,8 +11,8 @@ the network.
 
 ## Status
 
-Currently implemented: **terminal** (Oh My Posh, zsh, PowerShell).
-Everything else below is planned.
+Currently implemented: **terminal** (Oh My Posh, zsh, PowerShell) and
+**claude** (Claude Code skills). Everything else below is planned.
 
 ## Quick start
 
@@ -24,6 +24,16 @@ curl -fsSL https://raw.githubusercontent.com/joseph-ayodele/toolkit/main/termina
 
 ```powershell
 irm https://raw.githubusercontent.com/joseph-ayodele/toolkit/main/terminal/install.ps1 | iex
+```
+
+Install the Claude Code skills:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/joseph-ayodele/toolkit/main/claude/install.sh | bash
+```
+
+```powershell
+irm https://raw.githubusercontent.com/joseph-ayodele/toolkit/main/claude/install.ps1 | iex
 ```
 
 Or install a single component, e.g. just Oh My Posh:
@@ -49,6 +59,10 @@ toolkit/
 │   ├── zsh/
 │   └── powershell/
 │
+├── claude/               # Claude Code skills
+│   ├── install.sh / install.ps1
+│   └── skills/
+│
 ├── git/                  # planned: git config
 ├── editors/              # planned: editor config (VS Code, ...)
 ├── dev/                  # planned: language/runtime tooling
@@ -57,7 +71,8 @@ toolkit/
 └── docs/                 # planned: setup & troubleshooting docs
 ```
 
-See [`terminal/`](terminal) for details on the terminal component.
+See [`terminal/`](terminal) and [`claude/`](claude) for details on the
+implemented components.
 
 ## Conventions
 
@@ -71,7 +86,9 @@ See [`terminal/`](terminal) for details on the terminal component.
 - **Source of truth vs. install target**: this repo is the source of
   truth; installers copy/download files into `~/.config/toolkit/`,
   which is what your shell actually reads. Nothing sources files
-  directly from a cloned copy of this repo.
+  directly from a cloned copy of this repo. The one exception is
+  `claude/`, which installs into `~/.claude/` because Claude Code
+  reads skills only from its own config directory.
 - **Ref override**: set `TOOLKIT_REF` to install from a branch or tag
   other than `main`. A `VAR=val` prefix only applies to the first
   command in a pipeline, so it won't reach `bash` on the far side of

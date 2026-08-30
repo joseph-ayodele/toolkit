@@ -1,9 +1,10 @@
 # Toolkit — repository-level installer (Windows).
 #
-# Currently orchestrates the terminal component. Other categories
-# (bootstrap, git, editors, dev, cloud, scripts) will be wired in here
-# as they land — this script is not required to install any one
-# component; see terminal/install.ps1 for the terminal-only entrypoint.
+# Currently orchestrates the terminal and claude categories. Other
+# categories (bootstrap, git, editors, dev, cloud, scripts) will be
+# wired in here as they land — this script is not required to install
+# any one of them; see terminal/install.ps1 or claude/install.ps1 for
+# the per-category entrypoints.
 #
 # Usage:
 #   irm https://raw.githubusercontent.com/joseph-ayodele/toolkit/main/install.ps1 | iex
@@ -21,11 +22,18 @@ $RAW_BASE = "https://raw.githubusercontent.com/$TOOLKIT_OWNER/$TOOLKIT_REPO/$TOO
 
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { "" }
 
+function Invoke-ToolkitCategory {
+    param([string]$Category)
+    Write-Host "==> $Category"
+    $localPath = if ($ScriptDir) { Join-Path $ScriptDir "$Category/install.ps1" } else { "" }
+    if ($ScriptDir -and (Test-Path $localPath)) {
+        & $localPath
+    } else {
+        Invoke-RestMethod "$RAW_BASE/$Category/install.ps1" | Invoke-Expression
+    }
+}
+
 Write-Host "==> Toolkit installer"
 
-$local = if ($ScriptDir) { Join-Path $ScriptDir "terminal/install.ps1" } else { "" }
-if ($ScriptDir -and (Test-Path $local)) {
-    & $local
-} else {
-    Invoke-RestMethod "$RAW_BASE/terminal/install.ps1" | Invoke-Expression
-}
+Invoke-ToolkitCategory "terminal"
+Invoke-ToolkitCategory "claude"
